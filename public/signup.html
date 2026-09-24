@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sign Up — UJ Connect</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<div class="auth-wrap">
+  <div class="auth-card">
+    <div class="brand">
+      <span class="logo-badge">UJ</span>
+      <span>UJ Connect</span>
+    </div>
+    <p class="auth-subtitle">Create your account using your official school email.</p>
+
+    <div id="alert-box"></div>
+
+    <form id="signup-form">
+      <div class="form-group">
+        <label for="fullName">Full Name</label>
+        <input type="text" id="fullName" class="text-input w-full" placeholder="Thabo Mokoena" required />
+      </div>
+      <div class="form-group">
+        <label for="email">School Email</label>
+        <input type="email" id="email" class="text-input w-full" placeholder="you@unijos.edu.ng" required />
+        <div class="hint" id="domain-hint">Must end with your school domain, e.g. @unijos.edu.ng</div>
+      </div>
+      <div class="form-row-2">
+        <div class="form-group">
+          <label for="studentNumber">Student Number (optional)</label>
+          <input type="text" id="studentNumber" class="text-input w-full" placeholder="e.g. 220012345" />
+        </div>
+        <div class="form-group">
+          <label for="phone">Phone Number</label>
+          <input type="tel" id="phone" class="text-input w-full" placeholder="08x xxx xxxx" required minlength="7" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" class="text-input w-full" placeholder="At least 6 characters" required minlength="6" />
+      </div>
+      <button type="submit" id="signup-btn" class="btn btn-primary btn-block">Create Account</button>
+    </form>
+
+    <p class="auth-switch">Already have an account? <a href="login.html">Log in</a></p>
+    <p class="auth-switch"><a href="index.html">← Back to home</a></p>
+  </div>
+</div>
+
+<script src="js/app.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    if (isLoggedIn()) {
+      window.location.href = isAdmin() ? 'admin.html' : 'dashboard.html';
+    }
+  });
+
+  document.getElementById('signup-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fullName = document.getElementById('fullName').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const studentNumber = document.getElementById('studentNumber').value.trim();
+    const phone = document.getElementById('phone').value.trim();
+    const password = document.getElementById('password').value;
+    const btn = document.getElementById('signup-btn');
+    const alertBox = document.getElementById('alert-box');
+    alertBox.innerHTML = '';
+
+    if (!phone || phone.length < 7) {
+      alertBox.innerHTML = `<div class="alert alert-error">Please enter a valid phone number.</div>`;
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Creating account...';
+
+    try {
+      const data = await apiRequest('/auth/signup', {
+        method: 'POST',
+        body: { fullName, email, password, studentNumber, phone }
+      });
+      setSession(data.token, data.user);
+      showToast('Account created! Welcome to UJ Connect.', 'success');
+      setTimeout(() => { window.location.href = 'dashboard.html'; }, 500);
+    } catch (err) {
+      alertBox.innerHTML = `<div class="alert alert-error">${err.message}</div>`;
+      btn.disabled = false;
+      btn.textContent = 'Create Account';
+    }
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Admin Dashboard — UJ Connect</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<div id="layout-root"></div>
+
+<script src="js/layout.js"></script>
+<script src="js/app.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    requireAdmin();
+    renderLayout('admin');
+    buildAdminPage();
+    loadStats();
+    loadListingsTable();
+    loadUsersTable();
+    loadReportsTable();
+    loadCategoriesTable();
+  });
+
+  function buildAdminPage() {
+    document.getElementById('page-content').innerHTML = `
+      <div class="section-title-row">
+        <h2>Admin Dashboard</h2>
+      </div>
+
+      <div id="stats-grid" class="stat-grid">
+        <p class="text-muted">Loading stats...</p>
+      </div>
+
+      <div class="tabs" id="admin-tabs">
+        <button class="tab-btn active" data-tab="listings">Listings</button>
+        <button class="tab-btn" data-tab="users">Users</button>
+        <button class="tab-btn" data-tab="reports">Reports</button>
+        <button class="tab-btn" data-tab="categories">Categories</button>
+      </div>
+
+      <div id="admin-tab-listings">
+        <div class="filter-row">
+          <select id="listing-status-filter" class="select-input">
+            <option value="">All Statuses</option>
+            <option value="pending">Pending</option>
+            <option value="approved">Approved</option>
+            <option value="rejected">Rejected</option>
+            <option value="sold">Sold</option>
+          </select>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Title</th><th>Seller</th><th>Type</th><th>Price</th><th>Status</th><th>Posted</th><th>Actions</th></tr></thead>
+            <tbody id="admin-listings-body"><tr><td colspan="7" class="text-muted">Loading...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="admin-tab-users" class="hidden">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Name</th><th>Email</th><th>Student #</th><th>Status</th><th>Joined</th><th>Actions</th></tr></thead>
+            <tbody id="admin-users-body"><tr><td colspan="6" class="text-muted">Loading...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="admin-tab-reports" class="hidden">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Listing</th><th>Reported By</th><th>Reason</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+            <tbody id="admin-reports-body"><tr><td colspan="6" class="text-muted">Loading...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="admin-tab-categories" class="hidden">
+        <div class="form-row-2" style="margin-bottom:20px;">
+          <div class="panel">
+            <h3 class="mt-0" style="font-size:1rem;">Add New Main Category</h3>
+            <div class="form-group">
+              <input type="text" id="new-cat-name" class="text-input w-full" placeholder="Category name" />
+            </div>
+            <div class="form-group">
+              <select id="new-cat-type" class="select-input w-full">
+                <option value="goods">Goods</option>
+                <option value="services">Services</option>
+              </select>
+            </div>
+            <button class="btn btn-primary btn-sm" id="add-cat-btn">Add Category</button>
+          </div>
+          <div class="panel">
+            <h3 class="mt-0" style="font-size:1rem;">Add Subcategory</h3>
+            <div class="form-group">
+              <select id="new-subcat-parent" class="select-input w-full">
+                <option value="">Select main category</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <input type="text" id="new-subcat-name" class="text-input w-full" placeholder="Subcategory name" />
+            </div>
+            <button class="btn btn-primary btn-sm" id="add-subcat-btn">Add Subcategory</button>
+          </div>
+        </div>
+        <div id="admin-categories-list"><p class="text-muted">Loading categories...</p></div>
+      </div>
+    `;
+
+    document.querySelectorAll('#admin-tabs .tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#admin-tabs .tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        ['listings', 'users', 'reports', 'categories'].forEach(t => {
+          document.getElementById(`admin-tab-${t}`).classList.toggle('hidden', t !== btn.dataset.tab);
+        });
+      });
+    });
+
+    document.getElementById('listing-status-filter').addEventListener('change', (e) => {
+      loadListingsTable(e.target.value);
+    });
+
+    document.getElementById('add-cat-btn').addEventListener('click', addCategory);
+    document.getElementById('add-subcat-btn').addEventListener('click', addSubcategory);
+  }
+
+  async function loadStats() {
+    const el = document.getElementById('stats-grid');
+    try {
+      const data = await apiRequest('/admin/stats');
+      const s = data.stats;
+      el.innerHTML = `
+        ${statCard('👥', s.totalUsers, 'Total Students')}
+        ${statCard('📋', s.totalListings, 'Total Listings')}
+        ${statCard('⏳', s.pendingListings, 'Pending Review')}
+        ${statCard('✅', s.approvedListings, 'Live Listings')}
+        ${statCard('💰', s.soldListings, 'Sold')}
+        ${statCard('📦', s.goodsCount, 'Goods')}
+        ${statCard('🛠️', s.servicesCount, 'Services')}
+        ${statCard('🚩', s.openReports, 'Open Reports')}
+      `;
+    } catch (err) {
+      el.innerHTML = `<p class="text-muted">Could not load stats: ${err.message}</p>`;
+    }
+  }
+
+  function statCard(emoji, value, label) {
+    return `
+      <div class="stat-card">
+        <div class="stat-icon" style="font-size:1.3rem;">${emoji}</div>
+        <div>
+          <div class="stat-value">${value}</div>
+          <div class="stat-label">${label}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  async function loadListingsTable(status = '') {
+    const tbody = document.getElementById('admin-listings-body');
+    tbody.innerHTML = `<tr><td colspan="7" class="text-muted">Loading...</td></tr>`;
+    try {
+      const qs = status ? `?status=${status}` : '';
+      const data = await apiRequest(`/admin/listings${qs}`);
+      const listings = data.listings || [];
+      if (listings.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-muted">No listings found.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = listings.map(l => `
+        <tr>
+          <td><strong>${escapeHtml(l.title)}</strong></td>
+          <td>${escapeHtml(l.seller_name)}</td>
+          <td>${l.listing_type === 'good' ? 'Good' : 'Service'}</td>
+          <td>${formatPrice(l.price)}</td>
+          <td><span class="pill ${l.status}">${l.status}</span></td>
+          <td>${timeAgo(l.created_at)}</td>
+          <td>
+            ${l.status === 'pending' ? `
+              <button class="icon-btn" title="Approve" onclick="setListingStatus(${l.id}, 'approved')">✓</button>
+              <button class="icon-btn danger" title="Reject" onclick="setListingStatus(${l.id}, 'rejected')">✕</button>
+            ` : `
+              <button class="icon-btn" title="View" onclick="window.open('listing.html?id=${l.id}', '_blank')">👁</button>
+              <button class="icon-btn danger" title="Reject" onclick="setListingStatus(${l.id}, 'rejected')">✕</button>
+            `}
+          </td>
+        </tr>
+      `).join('');
+    } catch (err) {
+      tbody.innerHTML = `<tr><td colspan="7" class="text-muted">Error: ${err.message}</td></tr>`;
+    }
+  }
+
+  async function setListingStatus(id, status) {
+    try {
+      await apiRequest(`/admin/listings/${id}/status`, { method: 'PATCH', body: { status } });
+      showToast(`Listing ${status}.`, 'success');
+      loadListingsTable(document.getElementById('listing-status-filter').value);
+      loadStats();
+    } catch (err) { showToast(err.message, 'error'); }
+  }
+
+  async function loadUsersTable() {
+    const tbody = document.getElementById('admin-users-body');
+    try {
+      const data = await apiRequest('/admin/users');
+      const users = data.users || [];
+      tbody.innerHTML = users.map(u => `
+        <tr>
+          <td><strong>${escapeHtml(u.full_name)}</strong> ${u.role === 'admin' ? '<span class="pill approved">admin</span>' : ''} ${u.is_seller ? '<span class="pill pending">🏷️ seller</span>' : ''}</td>
+          <td>${escapeHtml(u.email)}<br><span class="text-muted" style="font-size:0.78rem;">${escapeHtml(u.phone || '')}</span></td>
+          <td>${escapeHtml(u.student_number || '—')}</td>
+          <td><span class="pill ${u.status}">${u.status}</span></td>
+          <td>${timeAgo(u.created_at)}</td>
+          <td>
+            ${u.role !== 'admin' ? `
+              ${u.status === 'active'
+                ? `<button class="icon-btn danger" title="Suspend" onclick="setUserStatus(${u.id}, 'suspended')">🚫</button>`
+                : `<button class="icon-btn" title="Reactivate" onclick="setUserStatus(${u.id}, 'active')">✓</button>`}
+              <button class="icon-btn danger" title="Delete" onclick="deleteUser(${u.id})">🗑</button>
+            ` : '<span class="text-muted">—</span>'}
+          </td>
+        </tr>
+      `).join('');
+    } catch (err) {
+      tbody.innerHTML = `<tr><td colspan="6" class="text-muted">Error: ${err.message}</td></tr>`;
+    }
+  }
+
+  async function setUserStatus(id, status) {
+    try {
+      await apiRequest(`/admin/users/${id}/status`, { method: 'PATCH', body: { status } });
+      showToast(`User ${status === 'active' ? 'reactivated' : 'suspended'}.`, 'success');
+      loadUsersTable();
+    } catch (err) { showToast(err.message, 'error'); }
+  }
+
+  async function deleteUser(id) {
+    if (!confirm('Delete this user permanently? All their listings will also be removed.')) return;
+    try {
+      await apiRequest(`/admin/users/${id}`, { method: 'DELETE' });
+      showToast('User deleted.', 'success');
+      loadUsersTable();
+      loadStats();
+    } catch (err) { showToast(err.message, 'error'); }
+  }
+
+  async function loadReportsTable() {
+    const tbody = document.getElementById('admin-reports-body');
+    try {
+      const data = await apiRequest('/admin/reports');
+      const reports = data.reports || [];
+      if (reports.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-muted">No reports.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = reports.map(r => `
+        <tr>
+          <td>${escapeHtml(r.listing_title)}</td>
+          <td>${escapeHtml(r.reporter_name)}</td>
+          <td>${escapeHtml(r.reason)}</td>
+          <td><span class="pill ${r.status === 'open' ? 'pending' : 'approved'}">${r.status}</span></td>
+          <td>${timeAgo(r.created_at)}</td>
+          <td>
+            ${r.status === 'open' ? `<button class="icon-btn" title="Resolve" onclick="resolveReport(${r.id})">✓</button>` : '—'}
+          </td>
+        </tr>
+      `).join('');
+    } catch (err) {
+      tbody.innerHTML = `<tr><td colspan="6" class="text-muted">Error: ${err.message}</td></tr>`;
+    }
+  }
+
+  async function resolveReport(id) {
+    try {
+      await apiRequest(`/admin/reports/${id}/resolve`, { method: 'PATCH' });
+      showToast('Report resolved.', 'success');
+      loadReportsTable();
+      loadStats();
+    } catch (err) { showToast(err.message, 'error'); }
+  }
+
+  async function loadCategoriesTable() {
+    const container = document.getElementById('admin-categories-list');
+    const parentSelect = document.getElementById('new-subcat-parent');
+    try {
+      const data = await apiRequest('/listings/categories');
+      const categories = data.categories || [];
+
+      // Populate the "add subcategory" parent dropdown
+      parentSelect.innerHTML = `<option value="">Select main category</option>` +
+        categories.map(c => `<option value="${c.id}">${escapeHtml(c.name)} (${c.type})</option>`).join('');
+
+      // Fetch subcategories for every category in parallel
+      const withSubs = await Promise.all(categories.map(async (c) => {
+        try {
+          const subData = await apiRequest(`/listings/subcategories/${c.id}`);
+          return { ...c, subcategories: subData.subcategories || [] };
+        } catch (err) {
+          return { ...c, subcategories: [] };
+        }
+      }));
+
+      if (withSubs.length === 0) {
+        container.innerHTML = `<p class="text-muted">No categories yet.</p>`;
+        return;
+      }
+
+      container.innerHTML = withSubs.map(c => `
+        <div class="panel" style="margin-bottom:14px;">
+          <div class="flex-between" style="margin-bottom:10px;">
+            <div>
+              <strong>${escapeHtml(c.name)}</strong>
+              <span class="pill approved" style="margin-left:8px;">${c.type}</span>
+            </div>
+            <button class="icon-btn danger" title="Delete category" onclick="deleteCategory(${c.id})">🗑</button>
+          </div>
+          ${c.subcategories.length > 0 ? `
+            <div style="display:flex;flex-wrap:wrap;gap:8px;">
+              ${c.subcategories.map(s => `
+                <span class="pill pending" style="display:inline-flex;align-items:center;gap:6px;">
+                  ${escapeHtml(s.name)}
+                  <span style="cursor:pointer;" onclick="deleteSubcategory(${s.id})" title="Delete subcategory">✕</span>
+                </span>
+              `).join('')}
+            </div>
+          ` : `<p class="text-muted" style="font-size:0.82rem;margin:0;">No subcategories.</p>`}
+        </div>
+      `).join('');
+    } catch (err) {
+      container.innerHTML = `<p class="text-muted">Error loading categories: ${err.message}</p>`;
+    }
+  }
+
+  async function addCategory() {
+    const name = document.getElementById('new-cat-name').value.trim();
+    const type = document.getElementById('new-cat-type').value;
+    if (!name) { showToast('Please enter a category name.', 'error'); return; }
+    try {
+      await apiRequest('/admin/categories', { method: 'POST', body: { name, type } });
+      showToast('Category added.', 'success');
+      document.getElementById('new-cat-name').value = '';
+      loadCategoriesTable();
+    } catch (err) { showToast(err.message, 'error'); }
+  }
+
+  async function deleteCategory(id) {
+    if (!confirm('Delete this category and all its subcategories?')) return;
+    try {
+      await apiRequest(`/admin/categories/${id}`, { method: 'DELETE' });
+      showToast('Category deleted.', 'success');
+      loadCategoriesTable();
+    } catch (err) { showToast(err.message, 'error'); }
+  }
+
+  async function addSubcategory() {
+    const categoryId = document.getElementById('new-subcat-parent').value;
+    const name = document.getElementById('new-subcat-name').value.trim();
+    if (!categoryId) { showToast('Please select a main category.', 'error'); return; }
+    if (!name) { showToast('Please enter a subcategory name.', 'error'); return; }
+    try {
+      await apiRequest('/admin/subcategories', { method: 'POST', body: { categoryId, name } });
+      showToast('Subcategory added.', 'success');
+      document.getElementById('new-subcat-name').value = '';
+      loadCategoriesTable();
+    } catch (err) { showToast(err.message, 'error'); }
+  }
+
+  async function deleteSubcategory(id) {
+    if (!confirm('Delete this subcategory?')) return;
+    try {
+      await apiRequest(`/admin/subcategories/${id}`, { method: 'DELETE' });
+      showToast('Subcategory deleted.', 'success');
+      loadCategoriesTable();
+    } catch (err) { showToast(err.message, 'error'); }
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str || '';
+    return div.innerHTML;
+  }
+</script>
+</body>
+</html>

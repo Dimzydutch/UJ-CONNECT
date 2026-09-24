@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Login — UJ Connect</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<div class="auth-wrap">
+  <div class="auth-card">
+    <div class="brand">
+      <span class="logo-badge">UJ</span>
+      <span>UJ Connect</span>
+    </div>
+    <p class="auth-subtitle">Welcome back! Log in with your school email.</p>
+
+    <div id="alert-box"></div>
+
+    <form id="login-form">
+      <div class="form-group">
+        <label for="email">School Email</label>
+        <input type="email" id="email" class="text-input w-full" placeholder="you@unijos.edu.ng" required />
+      </div>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" class="text-input w-full" placeholder="••••••••" required />
+      </div>
+      <button type="submit" id="login-btn" class="btn btn-primary btn-block">Log In</button>
+    </form>
+
+    <!-- Step 2: shown only if the account has 2FA enabled -->
+    <form id="twofa-form" class="hidden">
+      <div class="form-group" style="text-align:center;">
+        <div style="font-size:2rem;margin-bottom:6px;">🔐</div>
+        <p class="text-muted" style="margin:0 0 4px;">Enter the 6-digit code from your authenticator app.</p>
+        <p class="text-muted" style="font-size:0.78rem;">Lost access? You can use one of your backup codes instead.</p>
+      </div>
+      <div class="form-group">
+        <label for="twofa-code">Verification Code</label>
+        <input type="text" id="twofa-code" class="text-input w-full" placeholder="123456 or XXXXX-XXXXX" autocomplete="one-time-code" required />
+      </div>
+      <button type="submit" id="twofa-btn" class="btn btn-primary btn-block">Verify & Log In</button>
+      <button type="button" id="twofa-back-btn" class="btn btn-ghost btn-block" style="margin-top:8px;">← Back</button>
+    </form>
+
+    <p class="auth-switch" id="signup-switch">Don't have an account? <a href="signup.html">Sign up here</a></p>
+    <p class="auth-switch"><a href="index.html">← Back to home</a></p>
+  </div>
+</div>
+
+<script src="js/app.js"></script>
+<script>
+  let pendingTempToken = null;
+
+  document.addEventListener('DOMContentLoaded', () => {
+    if (isLoggedIn()) {
+      window.location.href = isAdmin() ? 'admin.html' : 'dashboard.html';
+    }
+  });
+
+  document.getElementById('login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const btn = document.getElementById('login-btn');
+    const alertBox = document.getElementById('alert-box');
+    alertBox.innerHTML = '';
+    btn.disabled = true;
+    btn.textContent = 'Logging in...';
+
+    try {
+      const data = await apiRequest('/auth/login', { method: 'POST', body: { email, password } });
+
+      if (data.requires2FA) {
+        pendingTempToken = data.tempToken;
+        document.getElementById('login-form').classList.add('hidden');
+        document.getElementById('signup-switch').classList.add('hidden');
+        document.getElementById('twofa-form').classList.remove('hidden');
+        document.getElementById('twofa-code').focus();
+        btn.disabled = false;
+        btn.textContent = 'Log In';
+        return;
+      }
+
+      setSession(data.token, data.user);
+      showToast('Login successful! Redirecting...', 'success');
+      setTimeout(() => {
+        window.location.href = data.user.role === 'admin' ? 'admin.html' : 'dashboard.html';
+      }, 500);
+    } catch (err) {
+      alertBox.innerHTML = `<div class="alert alert-error">${err.message}</div>`;
+      btn.disabled = false;
+      btn.textContent = 'Log In';
+    }
+  });
+
+  document.getElementById('twofa-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const code = document.getElementById('twofa-code').value.trim();
+    const btn = document.getElementById('twofa-btn');
+    const alertBox = document.getElementById('alert-box');
+    alertBox.innerHTML = '';
+    btn.disabled = true;
+    btn.textContent = 'Verifying...';
+
+    try {
+      const data = await apiRequest('/auth/verify-2fa', {
+        method: 'POST',
+        body: { tempToken: pendingTempToken, code }
+      });
+      setSession(data.token, data.user);
+      showToast('Login successful! Redirecting...', 'success');
+      setTimeout(() => {
+        window.location.href = data.user.role === 'admin' ? 'admin.html' : 'dashboard.html';
+      }, 500);
+    } catch (err) {
+      alertBox.innerHTML = `<div class="alert alert-error">${err.message}</div>`;
+      btn.disabled = false;
+      btn.textContent = 'Verify & Log In';
+    }
+  });
+
+  document.getElementById('twofa-back-btn').addEventListener('click', () => {
+    pendingTempToken = null;
+    document.getElementById('twofa-form').classList.add('hidden');
+    document.getElementById('twofa-code').value = '';
+    document.getElementById('login-form').classList.remove('hidden');
+    document.getElementById('signup-switch').classList.remove('hidden');
+    document.getElementById('alert-box').innerHTML = '';
+  });
+</script>
+</body>
+</html>
