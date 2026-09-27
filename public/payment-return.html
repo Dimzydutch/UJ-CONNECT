@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Confirming Payment — UJ Connect</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<div id="layout-root"></div>
+<script src="js/layout.js"></script>
+<script src="js/app.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', async () => {
+    renderLayout('dashboard');
+    const content = document.getElementById('page-content');
+    const orderId = new URLSearchParams(window.location.search).get('orderId');
+    content.innerHTML = `
+      <div class="panel payment-return-panel">
+        <h1>Confirming your payment</h1>
+        <p id="payment-return-status" class="text-muted">Checking the payment directly with Paystack...</p>
+        <a class="btn btn-primary btn-sm" href="dashboard.html#orders">View Orders &amp; Payouts</a>
+      </div>
+    `;
+
+    const status = document.getElementById('payment-return-status');
+    if (!isLoggedIn()) {
+      status.textContent = 'Please log in to verify this order payment.';
+      return;
+    }
+    if (!orderId || !/^\d+$/.test(orderId)) {
+      status.textContent = 'This payment return does not include a valid order.';
+      return;
+    }
+
+    try {
+      const result = await apiRequest(`/payments/orders/${orderId}/verify`, { method: 'POST' });
+      if (result.status === 'paid' || result.status === 'payout_pending' || result.status === 'completed') {
+        status.textContent = 'Payment confirmed. Seller payout will be initiated after you confirm receipt.';
+      } else if (result.status === 'refund_required') {
+        status.textContent = 'The payment arrived after the order became unavailable. A refund has been requested.';
+      } else {
+        status.textContent = 'Payment status: ' + result.status + '. Check Orders & Payouts for updates.';
+      }
+    } catch (err) {
+      status.textContent = `${err.message} Check Orders & Payouts before trying to pay again.`;
+    }
+  });
+</script>
+</body>
+</html>

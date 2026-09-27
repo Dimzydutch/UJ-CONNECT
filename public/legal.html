@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Privacy &amp; Terms — UJ Connect</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<div id="layout-root"></div>
+<script src="js/layout.js"></script>
+<script src="js/app.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    renderLayout('about');
+    document.getElementById('page-content').innerHTML = `
+      <article class="legal-page">
+        <header class="legal-header">
+          <a class="legal-back-link" href="index.html">&larr; Back to UJ Connect</a>
+          <p class="legal-eyebrow">UJ CONNECT · LEGAL</p>
+          <h1>Privacy &amp; Terms</h1>
+          <p class="text-muted">Last updated: September 27, 2026</p>
+          <p class="legal-intro">These documents explain the rules for using UJ Connect and how information is handled when you use the campus marketplace.</p>
+          <nav class="legal-toc" aria-label="Legal documents">
+            <a href="#privacy">Privacy Policy</a>
+            <a href="#terms">Terms of Service</a>
+          </nav>
+        </header>
+
+        <section id="privacy" class="legal-section">
+          <h2>Privacy Policy</h2>
+          <p>UJ Connect is a campus marketplace for University of Jos students. This policy describes the information the service handles, why it is used, and choices available to you.</p>
+
+          <h3>Information collected</h3>
+          <ul>
+            <li><strong>Account details:</strong> name, school email address, student number, phone number, and password when you register. Your email is verified before account access is enabled.</li>
+            <li><strong>Marketplace activity:</strong> seller profile details, listings, prices, descriptions, location, uploaded photos, messages, reviews, reports, and order details such as quantity, fulfillment choice, seller-quoted delivery fee, and delivery address.</li>
+            <li><strong>Payment and payout records:</strong> Paystack transaction and transfer references, order totals and status, and the linked payout bank name, account name, masked account number, and Paystack recipient code. Paystack receives the full bank account number for account verification and transfers; UJ Connect does not store the raw number.</li>
+            <li><strong>Security information:</strong> authentication/session data and, if enabled, authenticator setup information and backup-code hashes for two-factor authentication.</li>
+            <li><strong>Technical information:</strong> basic request information needed to operate, protect, and troubleshoot the service.</li>
+          </ul>
+
+          <h3>How information is used</h3>
+          <p>Information is used to create and secure accounts, verify school email addresses, operate listings and conversations, provide marketplace features, review reports, prevent misuse, and maintain the service. Verification codes are sent through the email service configured for UJ Connect.</p>
+
+          <h3>What other people can see</h3>
+          <p>Approved listings are public. <strong>At present, the marketplace may display a seller's name, email address, and phone number alongside an approved listing.</strong> Do not publish a listing if you are not comfortable with those details being visible. Messages and account security details are not intended as public listing content; administrators may access service data when handling moderation, support, or security issues.</p>
+
+          <h3>Storage and security</h3>
+          <p>Account and marketplace records are stored in the service database, and listing images are stored on the server and served from the site. Passwords are stored as one-way hashes rather than readable passwords. Session tokens are stored in your browser's local storage, so use a trusted, up-to-date device and sign out on shared devices. No online service can promise absolute security.</p>
+
+          <h3>Sharing and retention</h3>
+          <p>Information is shared where needed to run the service, including with Paystack for checkout, bank account verification, refunds, and transfers; with the email transport configured to send verification messages; with administrators responsible for operating the marketplace; and with the public when it is part of an approved listing. Delivery addresses are shared with the seller fulfilling that order. UJ Connect does not sell personal information. Records are kept while needed to operate the service, address safety or account issues, and meet applicable obligations. The service does not currently offer a self-service account deletion control.</p>
+
+          <h3>Your choices and requests</h3>
+          <p>You can choose what to include in a listing and can stop using the service. To ask about, correct, or request deletion of your account information, contact <a href="mailto:hello@dimzydutch@gmail.com?subject=UJ%20Connect%20privacy%20request">hello@dimzydutch@gmail.com</a>. We will review requests and may need to retain certain records for legitimate operational, safety, or legal reasons.</p>
+
+          <h3>Changes and contact</h3>
+          <p>This policy may change as the service changes. The latest version and its update date will be posted here. Questions about privacy can be sent to <a href="mailto:hello@dimzydutch@gmail.com">hello@dimzydutch@gmail.com</a>.</p>
+        </section>
+
+        <section id="terms" class="legal-section">
+          <h2>Terms of Service</h2>
+          <p>By creating an account or using UJ Connect, you agree to these terms. If you do not agree, do not use the service.</p>
+
+          <h3>Who may use UJ Connect</h3>
+          <p>UJ Connect is intended for University of Jos students. You must provide accurate registration information, use an eligible school email address, keep your login details private, and promptly secure your account if you believe someone else has accessed it. You are responsible for activity carried out through your account.</p>
+
+          <h3>Listings and user content</h3>
+          <p>You are responsible for the accuracy and legality of listings, images, messages, and reviews you submit. Only post content you have the right to use. Listings must describe the actual good or service, use honest pricing and availability, and comply with applicable law and university rules. Do not post fraudulent, misleading, infringing, unsafe, unlawful, or harassing content, or use the service to spam or impersonate another person.</p>
+
+          <h3>Marketplace transactions</h3>
+          <p>UJ Connect provides listings, order requests, Paystack checkout, and seller payouts. Sellers must link a bank account verified by Paystack, respond to order requests, and quote any delivery fee before the buyer pays. Buyers pay the confirmed total through Paystack and must confirm receipt only after receiving the item or service; that confirmation authorizes UJ Connect to initiate the seller payout. Paystack processing can take time, and transfers may be delayed or fail. Funds are processed through Paystack and are not represented as a regulated escrow service. UJ Connect is not a party to the underlying sale and does not guarantee a listing, another user's identity, the quality or safety of an item, delivery, or a particular outcome. Use public campus meeting spots and take care when providing delivery directions.</p>
+
+          <h3>Moderation and account action</h3>
+          <p>Listings may be reviewed before publication. UJ Connect may remove or restrict content, investigate reports, or suspend access when reasonably necessary to protect users, enforce these terms, or comply with law. Review and moderation do not guarantee that every listing or user has been verified or is safe.</p>
+
+          <h3>Availability and changes</h3>
+          <p>The service is provided as available and may change, be interrupted, or be discontinued. To the extent permitted by applicable law, UJ Connect is not responsible for indirect loss arising from use of the service or from dealings between users. Nothing in these terms limits a right or liability that cannot lawfully be limited.</p>
+
+          <h3>Updates and contact</h3>
+          <p>These terms may be updated as the service changes. Continued use after an updated version is posted means you accept the revised terms. Questions about these terms can be sent to <a href="mailto:hello@dimzydutch@gmail.com?subject=UJ%20Connect%20terms%20question">hello@dimzydutch@gmail.com</a>.</p>
+        </section>
+        <p class="legal-disclaimer">These terms and policy are a practical starting draft for UJ Connect and should be reviewed by a qualified Nigerian legal professional before being treated as final legal advice.</p>
+      </article>
+    `;
+
+    const sectionId = window.location.hash.slice(1);
+    if (sectionId) document.getElementById(sectionId)?.scrollIntoView();
+  });
+</script>
+</body>
+</html>

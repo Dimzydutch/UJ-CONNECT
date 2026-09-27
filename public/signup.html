@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sign Up — UJ Connect</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<div class="auth-wrap">
+  <div class="auth-card">
+    <div class="brand">
+      <span class="logo-badge">UJ</span>
+      <span>UJ Connect</span>
+    </div>
+    <p class="auth-subtitle">Create your account using your email.</p>
+
+    <div id="alert-box"></div>
+
+    <form id="signup-form">
+      <div class="form-group">
+        <label for="fullName">Full Name</label>
+        <input type="text" id="fullName" class="text-input w-full" placeholder="Andrew Abase" required />
+      </div>
+      <div class="form-group">
+        <label for="email">Email Address</label>
+        <input type="email" id="email" class="text-input w-full" placeholder="you@gmail.com" required />
+    
+      </div>
+      <div class="form-row-2">
+        <div class="form-group">
+          <label for="studentNumber">Student Mat. Number </label>
+          <input type="text" id="studentNumber" class="text-input w-full" placeholder="e.g. UJ/2020/NS/0123"
+          required />
+        </div>
+        <div class="form-group">
+          <label for="phone">Phone Number</label>
+          <input type="tel" id="phone" class="text-input w-full" placeholder="08x xxx xxxx" required minlength="7" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" class="text-input w-full" placeholder="At least 6 characters" required minlength="6" />
+      </div>
+      <button type="submit" id="signup-btn" class="btn btn-primary btn-block">Send Verification Code</button>
+    </form>
+
+    <!-- Step 2: shown after a code has been emailed -->
+    <form id="otp-form" class="hidden">
+      <div class="form-group" style="text-align:center;">
+        <div style="font-size:2rem;margin-bottom:6px;">📧</div>
+        <p class="text-muted" style="margin:0 0 4px;">
+          We sent a 6-digit code to <strong id="otp-email-display"></strong>. It expires in 10 minutes.
+        </p>
+      </div>
+      <div class="form-group">
+        <label for="otp-code">Verification Code</label>
+        <input type="text" id="otp-code" class="text-input w-full" placeholder="123456" inputmode="numeric"
+               pattern="\d{6}" maxlength="6" autocomplete="one-time-code" required />
+      </div>
+      <button type="submit" id="otp-btn" class="btn btn-primary btn-block">Verify & Create Account</button>
+      <button type="button" id="otp-resend-btn" class="btn btn-ghost btn-block" style="margin-top:8px;">Resend code</button>
+      <button type="button" id="otp-back-btn" class="btn btn-ghost btn-block" style="margin-top:4px;">← Back</button>
+    </form>
+
+    <p class="auth-switch" id="login-switch">Already have an account? <a href="login.html">Log in</a></p>
+    <p class="auth-switch" id="home-switch"><a href="index.html">← Back to home</a></p>
+  </div>
+</div>
+
+<script src="js/app.js"></script>
+<script>
+  let pendingSignupData = null; // { fullName, email, password, studentNumber, phone }
+  let resendCooldownTimer = null;
+
+  document.addEventListener('DOMContentLoaded', () => {
+    if (isLoggedIn()) {
+      window.location.href = isAdmin() ? 'admin.html' : 'dashboard.html';
+    }
+  });
+
+  // ---- Step 1: submit details, request a code ----
+  document.getElementById('signup-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fullName = document.getElementById('fullName').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const studentNumber = document.getElementById('studentNumber').value.trim();
+    const phone = document.getElementById('phone').value.trim();
+    const password = document.getElementById('password').value;
+    const btn = document.getElementById('signup-btn');
+    const alertBox = document.getElementById('alert-box');
+    alertBox.innerHTML = '';
+
+    if (!studentNumber || !studentNumber.trim()) {
+      alertBox.innerHTML = `<div class="alert alert-error">Student mat number is required.</div>`;
+      return;
+    }
+
+    if (!phone || phone.length < 7) {
+      alertBox.innerHTML = `<div class="alert alert-error">Please enter a valid phone number.</div>`;
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Sending code...';
+
+    try {
+      const data = await apiRequest('/auth/register/send-otp', {
+        method: 'POST',
+        body: { fullName, email, password, studentNumber, phone }
+      });
+
+      pendingSignupData = { fullName, email: data.email, studentNumber, phone };
+      document.getElementById('otp-email-display').textContent = data.email;
+
+      document.getElementById('signup-form').classList.add('hidden');
+      document.getElementById('login-switch').classList.add('hidden');
+      document.getElementById('otp-form').classList.remove('hidden');
+      document.getElementById('otp-code').focus();
+      showToast(data.message, 'success');
+      startResendCooldown(60);
+    } catch (err) {
+      alertBox.innerHTML = `<div class="alert alert-error">${err.message}</div>`;
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Send Verification Code';
+    }
+  });
+
+  // ---- Step 2: submit the 6-digit code ----
+  document.getElementById('otp-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const code = document.getElementById('otp-code').value.trim();
+    const btn = document.getElementById('otp-btn');
+    const alertBox = document.getElementById('alert-box');
+    alertBox.innerHTML = '';
+
+    if (!pendingSignupData) return;
+
+    btn.disabled = true;
+    btn.textContent = 'Verifying...';
+
+    try {
+      const data = await apiRequest('/auth/register/verify-otp', {
+        method: 'POST',
+        body: { email: pendingSignupData.email, code }
+      });
+      setSession(data.token, data.user);
+      showToast('Account verified! Welcome to UJ Connect.', 'success');
+      setTimeout(() => { window.location.href = 'dashboard.html'; }, 500);
+    } catch (err) {
+      alertBox.innerHTML = `<div class="alert alert-error">${err.message}</div>`;
+      btn.disabled = false;
+      btn.textContent = 'Verify & Create Account';
+    }
+  });
+
+  // ---- Resend code ----
+  document.getElementById('otp-resend-btn').addEventListener('click', async () => {
+    if (!pendingSignupData) return;
+    const alertBox = document.getElementById('alert-box');
+    alertBox.innerHTML = '';
+
+    try {
+      const data = await apiRequest('/auth/register/resend-otp', {
+        method: 'POST',
+        body: pendingSignupData
+      });
+      showToast(data.message, 'success');
+      startResendCooldown(60);
+    } catch (err) {
+      alertBox.innerHTML = `<div class="alert alert-error">${err.message}</div>`;
+    }
+  });
+
+  function startResendCooldown(seconds) {
+    const resendBtn = document.getElementById('otp-resend-btn');
+    resendBtn.disabled = true;
+    let remaining = seconds;
+    clearInterval(resendCooldownTimer);
+    resendBtn.textContent = `Resend code (${remaining}s)`;
+    resendCooldownTimer = setInterval(() => {
+      remaining -= 1;
+      if (remaining <= 0) {
+        clearInterval(resendCooldownTimer);
+        resendBtn.disabled = false;
+        resendBtn.textContent = 'Resend code';
+      } else {
+        resendBtn.textContent = `Resend code (${remaining}s)`;
+      }
+    }, 1000);
+  }
+
+  // ---- Back to step 1 ----
+  document.getElementById('otp-back-btn').addEventListener('click', () => {
+    clearInterval(resendCooldownTimer);
+    document.getElementById('otp-form').classList.add('hidden');
+    document.getElementById('otp-code').value = '';
+    document.getElementById('signup-form').classList.remove('hidden');
+    document.getElementById('login-switch').classList.remove('hidden');
+    document.getElementById('alert-box').innerHTML = '';
+  });
+</script>
+</body>
+</html>
