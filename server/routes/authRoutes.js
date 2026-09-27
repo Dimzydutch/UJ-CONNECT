@@ -12,6 +12,7 @@ router.post('/register/resend-otp', otpRequestLimiter, authController.sendRegist
 router.post('/register/verify-otp', otpVerifyLimiter, authController.verifyRegistrationOtp);
 
 router.post('/login', loginLimiter, authController.login);
+router.post('/login/verify-otp', otpVerifyLimiter, authController.verifyLoginOtp);
 router.post('/verify-2fa', authController.verify2FA);
 router.get('/me', verifyToken, authController.getMe);
 router.put('/seller-profile', verifyToken, authController.updateSellerProfile);

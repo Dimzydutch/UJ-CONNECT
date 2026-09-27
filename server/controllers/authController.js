@@ -67,6 +67,15 @@ function isSchoolEmail(email) {
 
 // ---------- 2FA helpers ----------
 
+function normalizeTwoFactorCode(value) {
+  if (value === null || value === undefined) return '';
+  return String(value).trim().replace(/\s+/g, '').replace(/-/g, '');
+}
+
+function isValidTwoFactorCode(value) {
+  return /^\d{6}$/.test(normalizeTwoFactorCode(value));
+}
+
 // Generates human-friendly one-time backup codes, e.g. "A1B2C-D3E4F"
 function generateBackupCodes(count = 8) {
   const codes = [];
@@ -126,6 +135,8 @@ async function verifyTotpOrBackup(dbUser, submittedCode, secret) {
 // usable once verifyRegistrationOtp succeeds.
 // ---------------------------------------------------------------------------
 exports.validateRegistrationInput = validateRegistrationInput;
+exports.normalizeTwoFactorCode = normalizeTwoFactorCode;
+exports.isValidTwoFactorCode = isValidTwoFactorCode;
 
 exports.sendRegistrationOtp = async (req, res) => {
   const conn = await pool.getConnection();
@@ -357,8 +368,7 @@ exports.login = async (req, res) => {
       return res.status(401).json({ success: false, message: 'Invalid email or password.' });
     }
 
-    // If 2FA is enabled, don't issue a full session yet — issue a short-lived
-    // "pending" token that only /auth/verify-2fa will accept.
+    // If 2FA is enabled via authenticator app, keep the existing flow.
     if (dbUser.two_factor_enabled) {
       const pendingToken = jwt.sign(
         { id: dbUser.id, type: 'pending2fa' },
@@ -373,24 +383,113 @@ exports.login = async (req, res) => {
       });
     }
 
+    const loginCode = generateOtp();
+    const codeHash = hashOtp(loginCode, dbUser.email);
+    const expiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
+
+    await pool.query(`DELETE FROM email_otps WHERE user_id = ? AND purpose = 'login_verification'`, [dbUser.id]);
+    await pool.query(
+      `INSERT INTO email_otps (user_id, email, code_hash, purpose, attempts, max_attempts, expires_at)
+       VALUES (?, ?, ?, 'login_verification', 0, ?, ?)`,
+      [dbUser.id, dbUser.email, codeHash, OTP_MAX_ATTEMPTS, expiresAt]
+    );
+
+    try {
+      await sendOtpEmail(dbUser.email, dbUser.full_name || 'User', loginCode);
+    } catch (mailErr) {
+      console.error('Failed to send login OTP email:', mailErr);
+      return res.status(502).json({ success: false, message: 'Could not send the login code. Please try again shortly.' });
+    }
+
+    return res.json({
+      success: true,
+      requiresEmailOtp: true,
+      email: dbUser.email,
+      message: 'We sent a 6-digit code to your email to complete login.'
+    });
+  } catch (err) {
+    console.error('Login error:', err);
+    res.status(500).json({ success: false, message: 'Server error during login.' });
+  }
+};
+
+exports.verifyLoginOtp = async (req, res) => {
+  try {
+    const { email, code } = req.body;
+
+    if (!email || !code) {
+      return res.status(400).json({ success: false, message: 'Email and verification code are required.' });
+    }
+
+    const cleanEmail = String(email).toLowerCase().trim();
+    const cleanCode = normalizeTwoFactorCode(code);
+
+    if (!isValidTwoFactorCode(cleanCode)) {
+      return res.status(400).json({ success: false, message: 'The verification code must be 6 digits.' });
+    }
+
+    const [userRows] = await pool.query('SELECT * FROM users WHERE email = ?', [cleanEmail]);
+    if (userRows.length === 0) {
+      return res.status(404).json({ success: false, message: 'User not found.' });
+    }
+
+    const dbUser = userRows[0];
+    if (dbUser.status === 'suspended') {
+      return res.status(403).json({ success: false, message: 'Your account has been suspended. Contact admin support.' });
+    }
+
+    const [otpRows] = await pool.query(
+      `SELECT * FROM email_otps WHERE user_id = ? AND purpose = 'login_verification'
+       ORDER BY created_at DESC LIMIT 1`,
+      [dbUser.id]
+    );
+
+    if (otpRows.length === 0) {
+      return res.status(400).json({ success: false, message: 'No login code found. Please log in again.' });
+    }
+
+    const otpRow = otpRows[0];
+    if (otpRow.consumed_at) {
+      return res.status(400).json({ success: false, message: 'This code has already been used. Please log in again.' });
+    }
+    if (new Date(otpRow.expires_at).getTime() < Date.now()) {
+      return res.status(400).json({ success: false, message: 'This login code has expired. Please log in again.' });
+    }
+    if (otpRow.attempts >= otpRow.max_attempts) {
+      return res.status(429).json({ success: false, message: 'Too many incorrect attempts. Please log in again.' });
+    }
+
+    const isValid = verifyOtp(cleanCode, cleanEmail, otpRow.code_hash);
+    if (!isValid) {
+      const attemptsLeft = otpRow.max_attempts - (otpRow.attempts + 1);
+      await pool.query('UPDATE email_otps SET attempts = attempts + 1 WHERE id = ?', [otpRow.id]);
+      return res.status(401).json({
+        success: false,
+        message: attemptsLeft > 0
+          ? `Incorrect code. ${attemptsLeft} attempt(s) remaining.`
+          : 'Incorrect code. No attempts remaining — please log in again.'
+      });
+    }
+
+    await pool.query('UPDATE email_otps SET consumed_at = NOW() WHERE id = ?', [otpRow.id]);
+
     const user = {
       id: dbUser.id,
       fullName: dbUser.full_name,
       email: dbUser.email,
       role: dbUser.role
     };
-
     const token = jwt.sign(user, JWT_SECRET, { expiresIn: '7d' });
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Login successful.',
       token,
       user
     });
   } catch (err) {
-    console.error('Login error:', err);
-    res.status(500).json({ success: false, message: 'Server error during login.' });
+    console.error('Verify login OTP error:', err);
+    res.status(500).json({ success: false, message: 'Server error while verifying login code.' });
   }
 };
 
@@ -659,7 +758,7 @@ exports.updateSellerProfile = async (req, res) => {
     }
 
     if (!sellerBio || !sellerBio.trim()) {
-      return res.status(400).json({ success: false, message: 'Please describe what you sell.' });
+      return res.status(400).json({ success: false, message: 'Please add a short bio of what you sell.' });
     }
     if (!phone || phone.trim().length < 7) {
       return res.status(400).json({ success: false, message: 'Please enter a valid phone number.' });

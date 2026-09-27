@@ -341,8 +341,8 @@
           </div>
         ` : ''}
         <div class="form-group">
-          <label for="seller-bio-input">Describe what you sell</label>
-          <textarea id="seller-bio-input" class="text-input w-full" rows="3" placeholder="e.g. I sell secondhand textbooks, phone accessories, and offer tutoring in Maths and Physics.">${escapeHtml((currentFullUser && currentFullUser.seller_bio) || '')}</textarea>
+          <label for="seller-bio-input">A short bio of what you sell</label>
+          <textarea id="seller-bio-input" class="text-input w-full" rows="3" placeholder="e.g. Electronics and Gadgets, Foods, Clothings, Books. I sell quality items, snacks, and study essentials.">${escapeHtml((currentFullUser && currentFullUser.seller_bio) || '')}</textarea>
         </div>
         <div class="form-group">
           <label for="seller-phone-input">Phone Number</label>
@@ -424,7 +424,7 @@
       const alertBox = document.getElementById('seller-profile-alert');
       alertBox.innerHTML = '';
 
-      if (!sellerBio) { alertBox.innerHTML = `<div class="alert alert-error">Please describe what you sell.</div>`; return; }
+      if (!sellerBio) { alertBox.innerHTML = `<div class="alert alert-error">Please add a short bio of what you sell.</div>`; return; }
       if (!phone || phone.length < 7) { alertBox.innerHTML = `<div class="alert alert-error">Please enter a valid phone number.</div>`; return; }
       if (!isEditing) {
         const bankCode = document.getElementById('seller-bank-select').value;

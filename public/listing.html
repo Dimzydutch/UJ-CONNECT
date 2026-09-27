@@ -91,6 +91,7 @@
               <div id="contact-area" style="margin-top:18px;">
                 <button id="request-order-btn" class="btn btn-primary" ${l.listing_type === 'good' && l.quantity <= 0 ? 'disabled' : ''}>${l.listing_type === 'good' ? 'Request to Buy' : 'Request Service'}</button>
                 <button id="contact-btn" class="btn btn-primary" ${l.listing_type === 'good' && l.quantity <= 0 ? 'disabled' : ''}>Message Seller</button>
+                ${l.seller_phone ? `<a class="btn btn-primary" href="tel:${l.seller_phone.replace(/[^\d+]/g, '')}">Call Seller</a>` : ''}
                 <button id="report-btn" class="btn btn-ghost">Report Listing</button>
               </div>
               <div id="purchase-order-wrap"></div>

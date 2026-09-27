@@ -295,7 +295,7 @@ exports.completeSellerOnboarding = async (req, res) => {
   try {
     const { sellerBio, phone, accountNumber, bankCode, confirmedAccountName } = req.body;
     if (typeof sellerBio !== 'string' || !sellerBio.trim()) {
-      return res.status(400).json({ success: false, message: 'Please describe what you sell.' });
+      return res.status(400).json({ success: false, message: 'Please add a short bio of what you sell.' });
     }
     if (typeof phone !== 'string' || phone.trim().length < 7) {
       return res.status(400).json({ success: false, message: 'Please enter a valid phone number.' });
