@@ -4,7 +4,7 @@ const authController = require('../controllers/authController');
 test('missing student number is rejected', () => {
   const result = authController.validateRegistrationInput({
     fullName: 'Test User',
-    email: 'student@gmail.com',
+    email: 'student@unijos.edu.ng',
     password: 'secret123',
     studentNumber: '',
     phone: '08012345678'
@@ -17,7 +17,7 @@ test('missing student number is rejected', () => {
 test('valid student number is accepted', () => {
   const result = authController.validateRegistrationInput({
     fullName: 'Test User',
-    email: 'student@gmail.com',
+    email: 'student@unijos.edu.ng',
     password: 'secret123',
     studentNumber: 'UJ/2023/CS/0012',
     phone: '08012345678'

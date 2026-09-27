@@ -9,7 +9,7 @@ const { generateOtp, hashOtp, verifyOtp } = require('../utils/otp');
 const { sendOtpEmail } = require('../config/mailer');
 require('dotenv').config();
 
-const SCHOOL_DOMAIN = (process.env.SCHOOL_EMAIL_DOMAIN || 'gmail.com').toLowerCase();
+const SCHOOL_DOMAIN = (process.env.SCHOOL_EMAIL_DOMAIN || 'unijos.edu.ng').toLowerCase();
 
 // ---------- Email OTP (registration verification) settings ----------
 const OTP_EXPIRY_MINUTES = 10;

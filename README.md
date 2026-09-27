@@ -8,7 +8,7 @@ A campus marketplace web app where students sign up with their **school email** 
 
 ## ✨ Features
 
-- **Email-domain-restricted signup/login** — configurable domain check (defaults to `@gmail.com`), JWT-based sessions, **phone number required** at signup
+- **Email-domain-restricted signup/login** — configurable domain check (defaults to `@unijos.edu.ng`), JWT-based sessions, **phone number required** at signup
 - **Seller profiles** — before listing anything, students set up a seller profile with a description of what they sell and a public contact phone number; shown on every one of their listings alongside their rating
 - **Goods & Services marketplace** — browse, search, filter by category/type/price, view details, prices shown in **Naira (₦)**
 - **Self-service listing uploads** — students set their own price and condition (Brand New / Used), upload up to **5 photos**, and pick from a full category → subcategory taxonomy (12 goods categories, 11 service categories, 80+ subcategories); listings go to **pending** until an admin approves them
@@ -94,7 +94,7 @@ cp .env.example .env
 Open `.env` and set at minimum:
 - `DB_PASSWORD` — your MySQL root/user password
 - `JWT_SECRET` / `SESSION_SECRET` — any long random strings
-- `SCHOOL_EMAIL_DOMAIN` — the email domain allowed to sign up (default `gmail.com`)
+- `SCHOOL_EMAIL_DOMAIN` — the email domain allowed to sign up (default `unijos.edu.ng`)
 - `ADMIN_EMAIL` / `ADMIN_PASSWORD` — credentials for the first admin account
 - `PAYSTACK_SECRET_KEY` — Paystack test key for development or live key after production activation; keep it server-side only
 - `APP_BASE_URL` — public base URL used for Paystack checkout return links
@@ -160,7 +160,7 @@ The app will be running at **http://localhost:5000**
 
 ## 👤 Using the App
 
-1. **Sign up** at `/signup.html` using an email ending in your configured domain (e.g. `yourname@gmail.com`) and a valid phone number — both are required.
+1. **Sign up** at `/signup.html` using your University of Jos student email ending in your configured domain (e.g. `yourname@unijos.edu.ng`) and a valid phone number — both are required.
 2. **Set up your seller profile** — the first time you click "+ New Listing" (or the "Become a Seller" card on your dashboard), you'll be asked to describe what you sell and confirm a contact phone number. This only needs to be done once.
 3. **Upload a listing** from your dashboard — choose Good or Service, add a title, price, condition (Brand New / Used), category → subcategory, description, and up to 5 photos. It's submitted as **pending**.
 4. **Admins** log in with the admin account created during `init-db`, and are redirected to `/admin.html` where they can approve/reject listings, manage users, categories, and reports.
