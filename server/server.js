@@ -61,6 +61,3 @@ app.use((err, req, res, next) => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`UJ Connect server running at http://localhost:${PORT}`);
-});
