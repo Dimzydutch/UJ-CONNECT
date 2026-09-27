@@ -261,7 +261,7 @@ img { max-width: 100%; display: block; }
   border-bottom: 1px solid var(--border);
 }
 .mobile-search-bar.open { display: block; }
-.mobile-search-bar .search-box { min-width: 0; width: 100%; }
+.mobile-search-bar .search-box { display: flex; min-width: 0; width: 100%; }
 
 @media (max-width: 860px) {
   .search-box { display: none; }
